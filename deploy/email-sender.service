@@ -1,0 +1,50 @@
+[Unit]
+Description=Watch a directory and mail every new file that appears
+Documentation=https://github.com/yann-dubrana/email-sender
+# network-online, not just network: SMTP needs a routable address at start.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=email-sender
+Group=email-sender
+
+WorkingDirectory=/opt/email-sender
+# Config lives here, not in a .env file. Keep it chmod 600, root:email-sender.
+# systemd does NOT strip quotes -- write SMTP__PASSWORD=secret, not "secret".
+EnvironmentFile=/etc/email-sender/env
+# Without this, stdout is block-buffered into the journal pipe and log lines
+# only appear once the buffer fills.
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/opt/email-sender/.venv/bin/python /opt/email-sender/main.py listen-and-send --path /var/lib/email-sender/data
+
+Restart=always
+RestartSec=5s
+
+# Hardening. ReadWritePaths is required: the service moves files into
+# sent/ and failed/, so a fully read-only filesystem breaks it at first delivery.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+# AF_UNIX is required, not optional: glibc's resolver reaches systemd-resolved
+# over a unix socket, so denying it makes every hostname lookup -- and therefore
+# every send -- fail.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadWritePaths=/var/lib/email-sender
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=email-sender
+
+[Install]
+WantedBy=multi-user.target

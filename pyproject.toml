@@ -1,0 +1,10 @@
+[project]
+name = "email-sender"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "typer==0.27.1",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.15.0",
+    "watchdog>=6.0.0",
+]
