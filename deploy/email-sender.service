@@ -18,6 +18,9 @@ EnvironmentFile=/etc/email-sender/env
 # only appear once the buffer fills.
 Environment=PYTHONUNBUFFERED=1
 
+# The venv interpreter directly, not `uv run`: uv would want a writable cache
+# and network at boot, which ProtectSystem=strict denies. `uv sync` builds this
+# venv at install time; starting it is a plain exec.
 ExecStart=/opt/email-sender/.venv/bin/python /opt/email-sender/main.py listen-and-send --path /var/lib/email-sender/data
 
 Restart=always
